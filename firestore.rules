@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: entries
+    // Fields:
+    //   - userId: string (required, immutable)
+    //   - type: string (required, enum: note, task, request, chat)
+    //   - content: string (required, size < 5000)
+    //   - title: string (optional, size < 200)
+    //   - status: string (optional, enum: pending, working, done)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (required)
+    //   - tags: list (optional, size < 20)
+    //   - metadata: map (optional)
+    //   - messages: list (optional)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "andreas.rocha@v4company.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEntry(data) {
+      return data.userId is string &&
+             data.type in ['note', 'task', 'request', 'chat', 'transcript'] &&
+             data.content is string && data.content.size() < 50000 &&
+             (!('title' in data) || (data.title is string && data.title.size() < 200)) &&
+             (!('status' in data) || data.status in ['pending', 'working', 'done']) &&
+             (!('messages' in data) || data.messages is list) &&
+             (!('summary' in data) || data.summary is string) &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    match /entries/{entryId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && 
+                      isValidEntry(request.resource.data) && 
+                      request.resource.data.userId == request.auth.uid;
+      allow update: if isDocOwner() && 
+                      isValidEntry(request.resource.data) &&
+                      request.resource.data.userId == resource.data.userId &&
+                      request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}

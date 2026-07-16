@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "Entry": {
+      "title": "Entry",
+      "description": "A node in the second brain, can be a note, task, or request.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier" },
+        "userId": { "type": "string", "description": "Owner of the entry" },
+        "type": { "type": "string", "enum": ["note", "task", "request"], "description": "Type of entry" },
+        "content": { "type": "string", "description": "The main content or description" },
+        "title": { "type": "string", "description": "Optional title for the entry" },
+        "status": { "type": "string", "enum": ["pending", "working", "done"], "description": "Status for tasks" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When it was created" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update time" },
+        "tags": { "type": "array", "items": { "type": "string" }, "description": "Tags for categorization" },
+        "metadata": { "type": "object", "description": "Additional AI-extracted metadata" }
+      },
+      "required": ["userId", "type", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/entries/{entryId}": {
+      "schema": "Entry",
+      "description": "Collection of second brain entries"
+    }
+  }
+}
