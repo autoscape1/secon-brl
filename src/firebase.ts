@@ -1,4 +1,5 @@
 import { Entry } from './types';
+import { get, set } from 'idb-keyval';
 
 export const auth = {
   currentUser: { uid: 'local-user', email: 'user@local.com', emailVerified: true, isAnonymous: false, tenantId: null, providerData: [] }
@@ -35,11 +36,11 @@ export class Timestamp {
 
 const LOCAL_STORAGE_KEY = 'second-brain-entries';
 
-function getLocalData(): Entry[] {
-  const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (!data) return [];
+async function getLocalData(): Promise<Entry[]> {
   try {
-    const parsed = JSON.parse(data);
+    const data = await get(LOCAL_STORAGE_KEY);
+    if (!data) return [];
+    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
     return parsed.map((item: any) => ({
       ...item,
       createdAt: item.createdAt ? new Timestamp(item.createdAt.seconds, item.createdAt.nanoseconds) : Timestamp.now(),
@@ -49,20 +50,36 @@ function getLocalData(): Entry[] {
         timestamp: m.timestamp ? new Timestamp(m.timestamp.seconds, m.timestamp.nanoseconds) : Timestamp.now()
       }))
     }));
-  } catch {
+  } catch (e) {
+    // Fallback to localStorage if IDB fails or is empty, to migrate old data
+    const lsData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (lsData) {
+      try {
+        const parsed = JSON.parse(lsData);
+        await set(LOCAL_STORAGE_KEY, lsData); // migrate it
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        return parsed;
+      } catch {
+        return [];
+      }
+    }
     return [];
   }
 }
 
-function saveLocalData(data: Entry[]) {
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+async function saveLocalData(data: Entry[]) {
+  try {
+    await set(LOCAL_STORAGE_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error("Failed to save to IDB:", e);
+  }
   notifyListeners();
 }
 
 let listeners: ((data: Entry[]) => void)[] = [];
 
-function notifyListeners() {
-  const data = getLocalData();
+async function notifyListeners() {
+  const data = await getLocalData();
   listeners.forEach(l => l(data));
 }
 
@@ -78,38 +95,38 @@ export function doc(db: any, path: string, id?: string) {
 }
 
 export async function addDoc(collectionPath: string, data: any) {
-  const entries = getLocalData();
+  const entries = await getLocalData();
   const id = Math.random().toString(36).substring(2, 15);
   const newEntry = { id, ...data };
   entries.push(newEntry);
-  saveLocalData(entries);
+  await saveLocalData(entries);
   return { id };
 }
 
 export async function setDoc(docRef: {path: string, id: string}, data: any) {
-  let entries = getLocalData();
+  let entries = await getLocalData();
   const index = entries.findIndex(e => e.id === docRef.id);
   if (index >= 0) {
     entries[index] = { ...entries[index], ...data };
   } else {
-    entries.push({ id: docRef.id, ...data });
+    entries.push({ id: docRef.id, ...data } as any);
   }
-  saveLocalData(entries);
+  await saveLocalData(entries);
 }
 
 export async function updateDoc(docRef: {path: string, id: string}, data: any) {
-  let entries = getLocalData();
+  let entries = await getLocalData();
   const index = entries.findIndex(e => e.id === docRef.id);
   if (index >= 0) {
     entries[index] = { ...entries[index], ...data };
-    saveLocalData(entries);
+    await saveLocalData(entries);
   }
 }
 
 export async function deleteDoc(docRef: {path: string, id: string}) {
-  let entries = getLocalData();
+  let entries = await getLocalData();
   entries = entries.filter(e => e.id !== docRef.id);
-  saveLocalData(entries);
+  await saveLocalData(entries);
 }
 
 export async function getDocFromServer(docRef: {path: string, id: string}) {
@@ -156,7 +173,7 @@ export function onSnapshot(q: any, callback: (snapshot: any) => void, errorCallb
   };
   
   listeners.push(listener);
-  listener(getLocalData());
+  getLocalData().then(data => listener(data));
   
   return () => {
     listeners = listeners.filter(l => l !== listener);
