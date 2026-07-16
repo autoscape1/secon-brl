@@ -38,8 +38,20 @@ const LOCAL_STORAGE_KEY = 'second-brain-entries';
 
 async function getLocalData(): Promise<Entry[]> {
   try {
-    const data = await get(LOCAL_STORAGE_KEY);
-    if (!data) return [];
+    let data = await get(LOCAL_STORAGE_KEY);
+    
+    if (!data) {
+      // Check localStorage for migration
+      const lsData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (lsData) {
+        await set(LOCAL_STORAGE_KEY, lsData);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        data = lsData;
+      } else {
+        return [];
+      }
+    }
+    
     const parsed = typeof data === 'string' ? JSON.parse(data) : data;
     return parsed.map((item: any) => ({
       ...item,
@@ -51,18 +63,7 @@ async function getLocalData(): Promise<Entry[]> {
       }))
     }));
   } catch (e) {
-    // Fallback to localStorage if IDB fails or is empty, to migrate old data
-    const lsData = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (lsData) {
-      try {
-        const parsed = JSON.parse(lsData);
-        await set(LOCAL_STORAGE_KEY, lsData); // migrate it
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
-        return parsed;
-      } catch {
-        return [];
-      }
-    }
+    console.error("Error reading local data", e);
     return [];
   }
 }

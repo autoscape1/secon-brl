@@ -37,6 +37,14 @@ const Archive: React.FC<ArchiveProps> = ({ entries, theme, incomingMessage, clea
   }, [autoRead]);
 
   useEffect(() => {
+    return () => {
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        audioCtxRef.current.close().catch(() => {});
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (incomingMessage) {
       if (incomingMessage !== processedMessageRef.current) {
         processedMessageRef.current = incomingMessage;
@@ -56,12 +64,7 @@ const Archive: React.FC<ArchiveProps> = ({ entries, theme, incomingMessage, clea
       } catch (e) {}
       audioSourceRef.current = null;
     }
-    if (audioCtxRef.current) {
-      try {
-        audioCtxRef.current.close();
-      } catch (e) {}
-      audioCtxRef.current = null;
-    }
+    // Do not close audioCtxRef.current so we can reuse it
     setPlayingAudioId(null);
   };
 
@@ -146,6 +149,17 @@ const Archive: React.FC<ArchiveProps> = ({ entries, theme, incomingMessage, clea
     }
 
     stopAudio();
+
+    // Initialize and resume AudioContext immediately on user gesture to avoid Safari restrictions
+    let audioCtx = audioCtxRef.current;
+    if (!audioCtx || audioCtx.state === 'closed') {
+      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioCtxRef.current = audioCtx;
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+
     setLoadingAudioId(msgId);
 
     try {
@@ -172,8 +186,11 @@ const Archive: React.FC<ArchiveProps> = ({ entries, theme, incomingMessage, clea
         }
         
         const buffer = new Int16Array(bytes.buffer);
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        audioCtxRef.current = audioCtx;
+        let audioCtx = audioCtxRef.current;
+        if (!audioCtx || audioCtx.state === 'closed') {
+          audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          audioCtxRef.current = audioCtx;
+        }
         
         const audioBuffer = audioCtx.createBuffer(1, buffer.length, 24000);
         const channelData = audioBuffer.getChannelData(0);
@@ -191,6 +208,9 @@ const Archive: React.FC<ArchiveProps> = ({ entries, theme, incomingMessage, clea
         };
         
         audioSourceRef.current = source;
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
+        }
         source.start();
         setPlayingAudioId(msgId);
       }

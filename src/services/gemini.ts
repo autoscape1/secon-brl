@@ -103,7 +103,7 @@ ${tasks}
 export async function generateAudio(text: string): Promise<string | null> {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
+      model: "gemini-3.1-flash-tts-preview",
       contents: [{ parts: [{ text: text }] }],
       config: {
         responseModalities: ["AUDIO"],
