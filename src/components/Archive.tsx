@@ -369,14 +369,14 @@ const Archive: React.FC<ArchiveProps> = ({ entries, theme, incomingMessage, clea
 
   if (activeChat) {
     return (
-      <div className="notebook-margin pt-6 pb-20 max-w-5xl mx-auto px-8 transition-all duration-500 h-screen flex flex-col">
-        <div className="relative flex items-center justify-center mb-6">
+      <div className="notebook-margin pt-4 sm:pt-6 pb-20 max-w-5xl mx-auto px-4 sm:px-8 transition-all duration-500 h-screen flex flex-col">
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4 sm:gap-0 mb-6">
           <button 
             onClick={() => {
               stopAudio();
               setActiveChat(null);
             }}
-            className={`absolute left-0 flex items-center gap-2 text-sm font-bold transition-colors ${
+            className={`sm:absolute sm:left-0 flex items-center self-start gap-2 text-sm font-bold transition-colors ${
               isNoir ? 'text-white/50 hover:text-white' : 'text-primary/50 hover:text-primary'
             }`}
           >
@@ -457,7 +457,7 @@ const Archive: React.FC<ArchiveProps> = ({ entries, theme, incomingMessage, clea
                       </span>
                       
                       {msg.role === 'model' && (
-                        <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all duration-300 ${isPlaying || isLoading || loadingAudioId === `dl-${idx}` ? 'opacity-100' : ''}`}>
+                        <div className={`flex items-center gap-1 opacity-100 transition-all duration-300`}>
                           <button
                             onClick={() => handleDownload(msg, idx)}
                             disabled={loadingAudioId === `dl-${idx}`}
@@ -528,9 +528,9 @@ const Archive: React.FC<ArchiveProps> = ({ entries, theme, incomingMessage, clea
   }
 
   return (
-    <div className="notebook-margin pt-6 pb-20 max-w-7xl px-8 transition-all duration-500">
-      <header className="mb-16">
-        <h2 className={`text-6xl font-headline font-black tracking-tight transition-all duration-500 mb-4 ${
+    <div className="notebook-margin pt-6 pb-20 max-w-7xl px-4 sm:px-8 transition-all duration-500">
+      <header className="mb-8 sm:mb-16">
+        <h2 className={`text-4xl sm:text-6xl font-headline font-black tracking-tight transition-all duration-500 mb-4 ${
           isNoir ? 'text-white' : 'text-primary italic'
         }`}>
           Archive & Chats

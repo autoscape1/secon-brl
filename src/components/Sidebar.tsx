@@ -19,9 +19,11 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   onNewEntry: () => void;
   theme: 'journal' | 'noir';
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onNewEntry, theme }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onNewEntry, theme, isOpen, setIsOpen }) => {
   const isNoir = theme === 'noir';
   const navItems = [
     { id: 'archive', label: 'Chats', icon: MessageSquare },
@@ -29,12 +31,22 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onNewEntry, 
   ];
 
   return (
-    <aside className={cn(
-      "h-screen w-64 fixed left-0 top-0 flex flex-col py-8 px-4 z-50 transition-all duration-500",
-      isNoir 
-        ? "bg-[#121212] border-r border-white/5 nm-flat" 
-        : "bg-surface border-r border-[#002068]/10 nm-flat"
-    )}>
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 sm:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+      
+      <aside className={cn(
+        "h-screen fixed left-0 top-0 flex flex-col py-8 px-4 z-50 transition-all duration-300",
+        isOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full",
+        isNoir 
+          ? "bg-[#121212] border-r border-white/5 nm-flat" 
+          : "bg-surface border-r border-[#002068]/10 nm-flat"
+      )}>
       <div className={cn(
         "text-xl font-bold mb-12 font-headline px-2 flex items-center gap-2 transition-all duration-500",
         isNoir ? "text-[#FF3B30]" : "text-primary"
@@ -135,6 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onNewEntry, 
         </div>
       </div>
     </aside>
+    </>
   );
 };
 

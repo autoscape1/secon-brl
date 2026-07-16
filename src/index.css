@@ -158,8 +158,15 @@
 
   .notebook-margin {
     border-left: 2px solid rgba(186, 26, 26, 0.3);
-    margin-left: 2.5rem;
-    padding-left: 2rem;
+    margin-left: 1rem;
+    padding-left: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .notebook-margin {
+      margin-left: 2.5rem;
+      padding-left: 2rem;
+    }
   }
 
   .sketch-border {

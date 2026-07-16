@@ -16,6 +16,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>({ uid: 'local-user' });
   const [isAuthReady, setIsAuthReady] = useState(true);
   const [activeTab, setActiveTab] = useState('archive');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null);
@@ -164,10 +165,12 @@ export default function App() {
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
           }} 
           theme={theme}
+          isOpen={isSidebarOpen}
+          setIsOpen={setIsSidebarOpen}
         />
         
-        <main className="ml-64 min-h-screen paper-texture relative">
-          <Header onSearch={setSearchQuery} theme={theme} onToggleTheme={toggleTheme} onOpenSettings={() => setShowSettings(true)} />
+        <main className={`min-h-screen paper-texture relative transition-all duration-300 w-full ${isSidebarOpen ? 'sm:ml-64 sm:w-[calc(100%-16rem)]' : 'ml-0'}`}>
+          <Header onSearch={setSearchQuery} theme={theme} onToggleTheme={toggleTheme} onOpenSettings={() => setShowSettings(true)} onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
           
           <AnimatePresence mode="wait">
             <motion.div
@@ -178,8 +181,8 @@ export default function App() {
               transition={{ duration: 0.3 }}
             >
               {activeTab === 'database' && (
-                <div className="notebook-margin pt-12 px-12 pb-20 transition-all duration-500 flex flex-col min-h-screen">
-                  <h2 className={`text-5xl font-headline font-black mb-12 transition-colors duration-500 ${
+                <div className="notebook-margin pt-8 sm:pt-12 px-4 sm:px-12 pb-20 transition-all duration-500 flex flex-col min-h-screen">
+                  <h2 className={`text-4xl sm:text-5xl font-headline font-black mb-8 sm:mb-12 transition-colors duration-500 ${
                     theme === 'noir' ? 'text-white' : 'text-primary'
                   }`}>
                     Notes base
